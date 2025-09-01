@@ -5,8 +5,9 @@ cmake_minimum_required(VERSION 3.14)
 
 include(ExternalProject)
 
-set(OPENFST_VERSION "1.8.0.1")
-set(OPENFST_URL "http://www.openfst.org/twiki/pub/FST/FstDownload/openfst-${OPENFST_VERSION}.tar.gz")
+set(OPENFST_VERSION "orig/1.8.0.1")
+set(OPENFST_GIT_REPOSITORY "git@github.com:kkm000/openfst.git")
+set(OPENFST_GIT_TAG "${OPENFST_VERSION}")
 set(OPENFST_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external/openfst")
 set(OPENFST_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/openfst_install")
 
@@ -37,9 +38,16 @@ else()
 endif()
 
 if(NOT OPENFST_COMPILED)
-    # Download and compile OpenFST
+    # Create install directory early
+    file(MAKE_DIRECTORY ${OPENFST_INSTALL_DIR})
+    file(MAKE_DIRECTORY ${OPENFST_INSTALL_DIR}/lib)
+    file(MAKE_DIRECTORY ${OPENFST_INSTALL_DIR}/include)
+
+    # Download and compile OpenFST using Git
     ExternalProject_Add(openfst_external
-        URL ${OPENFST_URL}
+        GIT_REPOSITORY ${OPENFST_GIT_REPOSITORY}
+        GIT_TAG ${OPENFST_GIT_TAG}
+        GIT_SHALLOW ON
         PREFIX ${OPENFST_PREFIX}
         CONFIGURE_COMMAND <SOURCE_DIR>/configure ${OPENFST_CONFIGURE_ARGS}
         BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL}
@@ -56,7 +64,7 @@ if(NOT OPENFST_COMPILED)
     set(OPENFST_LIBRARIES ${OPENFST_INSTALL_DIR}/lib/libfst.so)
     set(OPENFST_INCLUDE_DIRS ${OPENFST_INSTALL_DIR}/include)
     
-    # Create imported targets after build
+    # Create imported targets with proper paths
     add_library(fst SHARED IMPORTED GLOBAL)
     add_dependencies(fst openfst_external)
     set_target_properties(fst PROPERTIES

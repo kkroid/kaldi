@@ -242,10 +242,70 @@ BUILD_CMD="cmake --build . --parallel $BUILD_JOBS --config $BUILD_TYPE"
 if [[ "$VERBOSE" == true ]]; then
     $BUILD_CMD
 else
-    $BUILD_CMD > build.log 2>&1
-    if [[ $? -ne 0 ]]; then
+    # Start build and monitor dependency logs
+    $BUILD_CMD > build.log 2>&1 &
+    BUILD_PID=$!
+    
+    # Function to monitor dependency build logs
+    monitor_deps() {
+        local log_shown_openfst=false
+        local log_shown_openblas=false
+        
+        while kill -0 $BUILD_PID 2>/dev/null; do
+            # Check OpenFST logs
+            if [[ -f "external/openfst/src/openfst_external-stamp/openfst_external-download-out.log" && "$log_shown_openfst" == false ]]; then
+                log_info "OpenFST download log:"
+                cat external/openfst/src/openfst_external-stamp/openfst_external-download-*.log 2>/dev/null || true
+                log_shown_openfst=true
+            fi
+            
+            if [[ -f "external/openfst/src/openfst_external-stamp/openfst_external-configure-out.log" ]]; then
+                log_info "OpenFST configure log (last 20 lines):"
+                tail -20 external/openfst/src/openfst_external-stamp/openfst_external-configure-*.log 2>/dev/null || true
+            fi
+            
+            # Check OpenBLAS logs  
+            if [[ -f "external/openblas/src/openblas_external-stamp/openblas_external-download-out.log" && "$log_shown_openblas" == false ]]; then
+                log_info "OpenBLAS download log:"
+                cat external/openblas/src/openblas_external-stamp/openblas_external-download-*.log 2>/dev/null || true
+                log_shown_openblas=true
+            fi
+            
+            if [[ -f "external/openblas/src/openblas_external-stamp/openblas_external-configure-out.log" ]]; then
+                log_info "OpenBLAS configure log (last 20 lines):"
+                tail -20 external/openblas/src/openblas_external-stamp/openblas_external-configure-*.log 2>/dev/null || true
+            fi
+            
+            sleep 5
+        done
+    }
+    
+    # Start monitoring in background
+    monitor_deps &
+    MONITOR_PID=$!
+    
+    # Wait for build to complete
+    wait $BUILD_PID
+    BUILD_RESULT=$?
+    
+    # Stop monitoring
+    kill $MONITOR_PID 2>/dev/null || true
+    
+    if [[ $BUILD_RESULT -ne 0 ]]; then
         log_error "Build failed. See build.log for details."
         tail -50 build.log
+        
+        # Show dependency error logs if they exist
+        if [[ -f "external/openfst/src/openfst_external-stamp/openfst_external-download-err.log" ]]; then
+            log_error "OpenFST download errors:"
+            cat external/openfst/src/openfst_external-stamp/openfst_external-download-err.log
+        fi
+        
+        if [[ -f "external/openblas/src/openblas_external-stamp/openblas_external-configure-err.log" ]]; then
+            log_error "OpenBLAS configure errors:"
+            cat external/openblas/src/openblas_external-stamp/openblas_external-configure-err.log
+        fi
+        
         exit 1
     fi
 fi

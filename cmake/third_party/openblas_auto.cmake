@@ -5,8 +5,9 @@ cmake_minimum_required(VERSION 3.14)
 
 include(ExternalProject)
 
-set(OPENBLAS_VERSION "0.3.26")
-set(OPENBLAS_URL "https://github.com/xianyi/OpenBLAS/archive/v${OPENBLAS_VERSION}.tar.gz")
+set(OPENBLAS_VERSION "v0.3.26")
+set(OPENBLAS_GIT_REPOSITORY "git@github.com:OpenMathLib/OpenBLAS.git")
+set(OPENBLAS_GIT_TAG "${OPENBLAS_VERSION}")
 set(OPENBLAS_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external/openblas")
 set(OPENBLAS_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/openblas_install")
 
@@ -15,13 +16,18 @@ set(OPENBLAS_CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${OPENBLAS_INSTALL_DIR}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
     -DBUILD_SHARED_LIBS=ON
     -DBUILD_STATIC_LIBS=ON
     -DUSE_OPENMP=OFF
     -DUSE_THREAD=0
     -DNO_AFFINITY=1
     -DMAX_STACK_ALLOC=2048
+    -DDYNAMIC_ARCH=1
+    -DUSE_LOCKING=1
+    -DBUILD_LAPACK_DEPRECATED=ON
+    -DBUILD_LAPACK=ON
+    -DINTERFACE64=OFF
+    -DNUMA=OFF
 )
 
 # Check if OpenBLAS is already compiled
@@ -44,13 +50,29 @@ if(NOT OPENBLAS_COMPILED)
         list(REMOVE_ITEM OPENBLAS_CMAKE_ARGS "-DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}")
     endif()
 
-    # Download and compile OpenBLAS
+    # Create install directory early
+    file(MAKE_DIRECTORY ${OPENBLAS_INSTALL_DIR})
+    file(MAKE_DIRECTORY ${OPENBLAS_INSTALL_DIR}/lib)
+    file(MAKE_DIRECTORY ${OPENBLAS_INSTALL_DIR}/include)
+
+    # Download and compile OpenBLAS using Git
     ExternalProject_Add(openblas_external
-        URL ${OPENBLAS_URL}
+        GIT_REPOSITORY ${OPENBLAS_GIT_REPOSITORY}
+        GIT_TAG ${OPENBLAS_GIT_TAG}
+        GIT_SHALLOW ON
         PREFIX ${OPENBLAS_PREFIX}
+        PATCH_COMMAND ${CMAKE_COMMAND} -E echo "Patching OpenBLAS CMake files..." 
+                  COMMAND sed -i "s/cmake_minimum_required(VERSION 2\\.8\\.5)/cmake_minimum_required(VERSION 3.5)/g" <SOURCE_DIR>/CMakeLists.txt
+                  COMMAND sed -i "s/get_filename_component(F_COMPILER \\\${CMAKE_Fortran_COMPILER} NAME_WE)/if(CMAKE_Fortran_COMPILER)\\n  get_filename_component(F_COMPILER \\\${CMAKE_Fortran_COMPILER} NAME_WE)\\nelse()\\n  set(F_COMPILER \"NONE\")\\nendif()/g" <SOURCE_DIR>/cmake/f_check.cmake
+                  COMMAND ${CMAKE_COMMAND} -E echo "OpenBLAS CMake version and f_check patching completed"
         CMAKE_ARGS ${OPENBLAS_CMAKE_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build . --parallel ${CMAKE_BUILD_PARALLEL_LEVEL}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapack.h ${OPENBLAS_INSTALL_DIR}/include/
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke.h ${OPENBLAS_INSTALL_DIR}/include/
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke_config.h ${OPENBLAS_INSTALL_DIR}/include/
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke_mangling.h ${OPENBLAS_INSTALL_DIR}/include/
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke_utils.h ${OPENBLAS_INSTALL_DIR}/include/
         LOG_DOWNLOAD ON
         LOG_CONFIGURE ON
         LOG_BUILD ON
@@ -62,7 +84,7 @@ if(NOT OPENBLAS_COMPILED)
     set(OPENBLAS_LIBRARIES ${OPENBLAS_INSTALL_DIR}/lib/libopenblas.so)
     set(OPENBLAS_INCLUDE_DIRS ${OPENBLAS_INSTALL_DIR}/include)
     
-    # Create imported target
+    # Create imported target with proper paths
     add_library(openblas SHARED IMPORTED GLOBAL)
     add_dependencies(openblas openblas_external)
     set_target_properties(openblas PROPERTIES
