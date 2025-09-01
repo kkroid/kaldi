@@ -3,6 +3,27 @@
 Kaldi Speech Recognition Toolkit
 ================================
 
+## 🚀 快速开始 (新的自动化构建系统)
+
+使用我们新的自动化构建脚本，一键完成Kaldi的完整编译：
+
+```bash
+# 基本构建
+./build_kaldi.sh
+
+# 构建并安装
+./build_kaldi.sh --install
+
+# 查看所有选项
+./build_kaldi.sh --help
+```
+
+📖 **详细文档**: 参见 [BUILD_SYSTEM.md](BUILD_SYSTEM.md) 了解完整的构建系统说明。
+
+---
+
+## 传统构建方式
+
 To build the toolkit: see `./INSTALL`.  These instructions are valid for UNIX
 systems including various flavors of Linux; Darwin; and Cygwin (has not been
 tested on more "exotic" varieties of UNIX).  For Windows installation

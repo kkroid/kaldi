@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.18)
 project(kaldi)
 
+# Set default install prefix to .install directory if not specified
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/src CACHE PATH "Install path prefix." FORCE)
+  set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/.install CACHE PATH "Install path prefix." FORCE)
 endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 include(GNUInstallDirs)
@@ -22,7 +23,8 @@ endif()
 
 include(third_party/get_third_party)
 
-include(cmake/third_party/openfst.cmake)
+# Include automated dependency management
+include(cmake/dependencies.cmake)
 
 find_package(PythonInterp)
 if(NOT PYTHON_EXECUTABLE)
@@ -43,7 +45,7 @@ execute_process(COMMAND ${PYTHON_EXECUTABLE}
 )
 unset(IS_LIB_SHARE)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INSTALL_MESSAGE LAZY) # hide "-- Up-to-date: ..."
 if(BUILD_SHARED_LIBS)
@@ -64,9 +66,11 @@ if(APPLE)
 else()
     set(MATHLIB "OpenBLAS" CACHE STRING "OpenBLAS|MKL|Accelerate")
 endif()
+message(STATUS "Using ${MATHLIB} for linear algebra")
 option(KALDI_BUILD_EXE "If disabled, will make add_kaldi_executable a no-op" ON)
 option(KALDI_BUILD_TEST "If disabled, will make add_kaldi_test_executable a no-op" ON)
 option(KALDI_USE_PATCH_NUMBER "Use MAJOR.MINOR.PATCH format, otherwise MAJOR.MINOR" OFF)
+option(KALDI_USE_CUDA "Enable CUDA support" OFF)
 
 if (KALDI_BUILD_TEST)
     include(CTest)
@@ -78,46 +82,123 @@ link_libraries(${CMAKE_DL_LIBS})
 find_package(Threads)
 link_libraries(Threads::Threads)
 
-if(CONDA_ROOT)
-    find_package(BLAS REQUIRED)
-    find_package(LAPACK REQUIRED)
-    link_libraries(BLAS::BLAS)
-    link_libraries(LAPACK::LAPACK)
-    # OPENBLAS is equivalent to LAPACKE; see
-    # https://github.com/kaldi-asr/kaldi/blob/master/src/matrix/kaldi-blas.h#L95-L113
-    add_definitions(-DHAVE_OPENBLAS=1)
-    if(MSVC)
-        link_libraries(cblas lapack)
-        # necessary macros to compile on windows, from here:
-        # https://icl.cs.utk.edu/lapack-for-windows/lapack/
-        add_definitions(-DADD_)
-        add_definitions(-DHAVE_LAPACK_CONFIG_H)
-        add_definitions(-DLAPACK_COMPLEX_STRUCTURE)
+# Dependencies are now handled by cmake/dependencies.cmake
+# Math library and OpenFST configuration is automatic
+
+# MKL support (if explicitly requested)
+if(MATHLIB STREQUAL "MKL")
+    if(NOT DEFINED ENV{MKLROOT} OR "$ENV{MKLROOT}" STREQUAL "")
+        message(FATAL_ERROR "Environment variable MKLROOT is not defined")
     else()
-        include_directories($ENV{PREFIX}/include)
+        message(STATUS "Finding MKL from \"$ENV{MKLROOT}\"")
     endif()
+    normalize_env_path(ENV{MKLROOT})
+    set(BLA_VENDOR "Intel10_64lp_seq") # use the single threaded MKL by default
+    find_package(LAPACK REQUIRED)
+    add_definitions(-DHAVE_MKL=1)
+    include_directories($ENV{MKLROOT}/include)
+    link_libraries(${LAPACK_LIBRARIES})
+endif()LT)
+  set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/src CACHE PATH "Install path prefix." FORCE)
+endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+include(GNUInstallDirs)
+include(Utils)
+
+if(CONDA_ROOT)
+    message(STATUS "Adding ${CONDA_ROOT} directories")
+    set(CMAKE_INCLUDE_PATH "${CONDA_ROOT}/include")
+    set(CMAKE_LIBRARY_PATH "${CONDA_ROOT}/lib")
+    link_directories("${CONDA_ROOT}/lib")
+    include_directories("${CONDA_ROOT}/include")
+    if (NOT CUDA_TOOLKIT_ROOT_DIR)
+        set(CUDA_TOOLKIT_ROOT_DIR "${CONDA_ROOT}")
+    endif()
+
+endif()
+
+include(third_party/get_third_party)
+
+# Include automated dependency management
+include(cmake/dependencies.cmake)
+
+find_package(PythonInterp)
+if(NOT PYTHON_EXECUTABLE)
+    message(FATAL_ERROR "Needs python to auto-generate most CMake files, but not found.")
+endif()
+
+message(STATUS "Running gen_cmake_skeleton.py")
+option(BUILD_SHARED_LIBS "Build shared Kaldi libraries." OFF)
+set(IS_LIB_SHARE "")
+if(BUILD_SHARED_LIBS)
+    set(IS_LIB_SHARE "--shared")
+endif()
+execute_process(COMMAND ${PYTHON_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_cmake_skeleton.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "--quiet"
+    ${IS_LIB_SHARE}
+)
+unset(IS_LIB_SHARE)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_INSTALL_MESSAGE LAZY) # hide "-- Up-to-date: ..."
+if(BUILD_SHARED_LIBS)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    if(WIN32)
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+        message(FATAL_ERROR "DLL is not supported currently")
+    elseif(APPLE)
+        set(CMAKE_INSTALL_RPATH "@loader_path")
+    else()
+        set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib;$ORIGIN/../../tools/openfst/lib")
+    endif()
+endif()
+
+if(APPLE)
+    # Use built-in BLAS on MacOS by default.
+    set(MATHLIB "Accelerate" CACHE STRING "OpenBLAS|MKL|Accelerate")
 else()
-    if(MATHLIB STREQUAL "OpenBLAS")
-        add_definitions(-DHAVE_CLAPACK=1)
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tools/CLAPACK)
-        link_libraries(${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-    elseif(MATHLIB STREQUAL "MKL")
-        if(NOT DEFINED ENV{MKLROOT} OR "$ENV{MKLROOT}" STREQUAL "")
-            message(FATAL_ERROR "Environment variable MKLROOT is not defined")
-        else()
-            message(STATUS "Finding MKL from \"$ENV{MKLROOT}\"")
-        endif()
-        normalize_env_path(ENV{MKLROOT})
-        set(BLA_VENDOR "Intel10_64lp_seq") # use the single threaded MKL by default
-        find_package(LAPACK REQUIRED)
-        add_definitions(-DHAVE_MKL=1)
-        include_directories($ENV{MKLROOT}/include)
-        link_libraries(${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-    elseif(MATHLIB STREQUAL "Accelerate")
-        execute_process(COMMAND sw_vers -productVersion
-            OUTPUT_VARIABLE MACOS_VERSION)
-        if(MACOS_VERSION VERSION_LESS "10.12" AND MACOS_VERSION VERSION_GREATER_EQUAL "10.11")
-            message(WARNING
+    set(MATHLIB "OpenBLAS" CACHE STRING "OpenBLAS|MKL|Accelerate")
+endif()
+message(STATUS "Using ${MATHLIB} for linear algebra")
+option(KALDI_BUILD_EXE "If disabled, will make add_kaldi_executable a no-op" ON)
+option(KALDI_BUILD_TEST "If disabled, will make add_kaldi_test_executable a no-op" ON)
+option(KALDI_USE_PATCH_NUMBER "Use MAJOR.MINOR.PATCH format, otherwise MAJOR.MINOR" OFF)
+option(KALDI_USE_CUDA "Enable CUDA support" OFF)
+
+if (KALDI_BUILD_TEST)
+    include(CTest)
+    enable_testing()
+endif()
+
+link_libraries(${CMAKE_DL_LIBS})
+
+find_package(Threads)
+link_libraries(Threads::Threads)
+
+# Dependencies are now handled by cmake/dependencies.cmake
+# Math library and OpenFST configuration is automatic
+
+# MKL support (if explicitly requested)
+if(MATHLIB STREQUAL "MKL")
+    if(NOT DEFINED ENV{MKLROOT} OR "$ENV{MKLROOT}" STREQUAL "")
+        message(FATAL_ERROR "Environment variable MKLROOT is not defined")
+    else()
+        message(STATUS "Finding MKL from \"$ENV{MKLROOT}\"")
+    endif()
+    normalize_env_path(ENV{MKLROOT})
+    set(BLA_VENDOR "Intel10_64lp_seq") # use the single threaded MKL by default
+    find_package(LAPACK REQUIRED)
+    add_definitions(-DHAVE_MKL=1)
+    include_directories($ENV{MKLROOT}/include)
+    link_libraries(${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+elseif(MATHLIB STREQUAL "Accelerate")
+    execute_process(COMMAND sw_vers -productVersion
+        OUTPUT_VARIABLE MACOS_VERSION)
+    if(MACOS_VERSION VERSION_LESS "10.12" AND MACOS_VERSION VERSION_GREATER_EQUAL "10.11")
+        message(WARNING
                 "**BAD WARNING**: You are using OS X El Capitan.  Some versions of this OS"
                 " have a bug in the BLAS implementation that affects Kaldi."
                 " After compiling, cd to matrix/ and type 'make test'.  The"
@@ -166,9 +247,10 @@ if(MSVC)
     endif()
 endif()
 
-find_package(CUDAToolkit)
-find_package(CUDA)
-if(CUDA_FOUND)
+if(KALDI_USE_CUDA)
+    find_package(CUDAToolkit)
+    find_package(CUDA)
+    if(CUDA_FOUND)
     set(CUDA_PROPAGATE_HOST_FLAGS ON)
     if(MSVC)
         set(KALDI_CUDA_NVCC_FLAGS "--default-stream=per-thread") # Fixes incompatibility with cxx14 and cxx17 for Kaldi vs cuda in VS2019
@@ -201,6 +283,7 @@ if(CUDA_FOUND)
 
     find_package(CUB REQUIRED)
     include_directories(${CUB_INCLUDE_DIR})
+    endif()
 endif()
 
 add_definitions(-DKALDI_NO_PORTAUDIO=1)
@@ -265,7 +348,7 @@ if(TENSORFLOW_DIR)
 endif()
 
 # add all cuda libraries
-if(CUDA_FOUND)
+if(KALDI_USE_CUDA AND CUDA_FOUND)
     add_subdirectory(src/cudafeat)
     add_subdirectory(src/cudadecoder)
 endif()
@@ -290,7 +373,7 @@ endif()
 add_subdirectory(src/kwsbin)
 
 # add all cuda executables
-if(CUDA_FOUND)
+if(KALDI_USE_CUDA AND CUDA_FOUND)
     add_subdirectory(src/cudafeatbin)
     add_subdirectory(src/cudadecoderbin)
 endif()
