@@ -9,7 +9,7 @@ set(OPENBLAS_VERSION "v0.3.26")
 set(OPENBLAS_GIT_REPOSITORY "git@github.com:OpenMathLib/OpenBLAS.git")
 set(OPENBLAS_GIT_TAG "${OPENBLAS_VERSION}")
 set(OPENBLAS_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external/openblas")
-set(OPENBLAS_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/openblas_install")
+set(OPENBLAS_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/kaldi_deps_openblas")
 
 # Configure OpenBLAS build parameters
 set(OPENBLAS_CMAKE_ARGS
@@ -32,7 +32,7 @@ set(OPENBLAS_CMAKE_ARGS
 
 # Check if OpenBLAS is already compiled
 find_library(OPENBLAS_EXISTING_LIB openblas PATHS ${OPENBLAS_INSTALL_DIR}/lib NO_DEFAULT_PATH)
-find_path(OPENBLAS_EXISTING_INCLUDE cblas.h PATHS ${OPENBLAS_INSTALL_DIR}/include NO_DEFAULT_PATH)
+find_path(OPENBLAS_EXISTING_INCLUDE openblas_config.h PATHS ${OPENBLAS_INSTALL_DIR}/include/openblas ${OPENBLAS_INSTALL_DIR}/include NO_DEFAULT_PATH)
 
 if(OPENBLAS_EXISTING_LIB AND OPENBLAS_EXISTING_INCLUDE)
     message(STATUS "Found existing OpenBLAS installation at ${OPENBLAS_INSTALL_DIR}")
@@ -73,10 +73,15 @@ if(NOT OPENBLAS_COMPILED)
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke_config.h ${OPENBLAS_INSTALL_DIR}/include/
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke_mangling.h ${OPENBLAS_INSTALL_DIR}/include/
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke_utils.h ${OPENBLAS_INSTALL_DIR}/include/
-        LOG_DOWNLOAD ON
-        LOG_CONFIGURE ON
-        LOG_BUILD ON
-        LOG_INSTALL ON
+        # Print logs directly to console instead of log files
+        LOG_DOWNLOAD OFF
+        LOG_CONFIGURE OFF  
+        LOG_BUILD OFF
+        LOG_INSTALL OFF
+        USES_TERMINAL_DOWNLOAD ON
+        USES_TERMINAL_CONFIGURE ON
+        USES_TERMINAL_BUILD ON
+        USES_TERMINAL_INSTALL ON
     )
     
     # Set variables for later use
@@ -95,7 +100,7 @@ else()
     # Use existing installation
     set(OPENBLAS_ROOT ${OPENBLAS_INSTALL_DIR})
     set(OPENBLAS_LIBRARIES ${OPENBLAS_EXISTING_LIB})
-    set(OPENBLAS_INCLUDE_DIRS ${OPENBLAS_EXISTING_INCLUDE})
+    set(OPENBLAS_INCLUDE_DIRS ${OPENBLAS_INSTALL_DIR}/include)
     
     add_library(openblas SHARED IMPORTED GLOBAL)
     set_target_properties(openblas PROPERTIES
@@ -106,11 +111,18 @@ endif()
 
 # Export variables for use in main CMakeLists.txt
 set(OPENBLAS_FOUND TRUE PARENT_SCOPE)
-set(OPENBLAS_ROOT ${OPENBLAS_ROOT} PARENT_SCOPE)
-set(OPENBLAS_LIBRARIES ${OPENBLAS_LIBRARIES} PARENT_SCOPE)
-set(OPENBLAS_INCLUDE_DIRS ${OPENBLAS_INCLUDE_DIRS} PARENT_SCOPE)
+set(KALDI_OPENBLAS_ROOT ${OPENBLAS_ROOT} PARENT_SCOPE)
+set(KALDI_OPENBLAS_LIBRARIES ${OPENBLAS_LIBRARIES} PARENT_SCOPE)
+set(KALDI_OPENBLAS_INCLUDE_DIRS ${OPENBLAS_INCLUDE_DIRS} PARENT_SCOPE)
 
 message(STATUS "OpenBLAS configuration:")
 message(STATUS "  Root: ${OPENBLAS_ROOT}")
 message(STATUS "  Libraries: ${OPENBLAS_LIBRARIES}")
 message(STATUS "  Include dirs: ${OPENBLAS_INCLUDE_DIRS}")
+
+# Compact status output
+if(OPENBLAS_COMPILED)
+    message(STATUS "✓ OpenBLAS: Using existing installation")
+else()
+    message(STATUS "⚙ OpenBLAS: Will build from source")
+endif()

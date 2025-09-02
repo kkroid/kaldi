@@ -45,13 +45,17 @@ function(configure_math_library)
         message(STATUS "Building CLAPACK from source")
         include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/third_party/clapack_auto.cmake)
         
+        # Get include directories directly from imported targets
+        get_target_property(OPENBLAS_INCLUDE_DIRS openblas INTERFACE_INCLUDE_DIRECTORIES)
+        get_target_property(CLAPACK_INCLUDE_DIRS clapack INTERFACE_INCLUDE_DIRECTORIES)
+        
         include_directories(${OPENBLAS_INCLUDE_DIRS})
         include_directories(${CLAPACK_INCLUDE_DIRS})
-        link_directories(${OPENBLAS_ROOT}/lib)
-        link_directories(${CLAPACK_ROOT}/lib)
+        link_directories(${KALDI_OPENBLAS_ROOT}/lib)
+        link_directories(${KALDI_CLAPACK_ROOT}/lib)
         # Use OpenBLAS for BLAS/CBLAS and CLAPACK for LAPACK functions
         link_libraries(openblas)
-        link_libraries(${CLAPACK_LIBRARIES})
+        link_libraries(${KALDI_CLAPACK_LIBRARIES})
         add_definitions(-DHAVE_OPENBLAS=1)
         add_definitions(-DHAVE_CLAPACK=1)
     else()

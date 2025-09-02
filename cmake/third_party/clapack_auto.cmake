@@ -9,7 +9,7 @@ set(CLAPACK_VERSION "v3.2.1")
 set(CLAPACK_GIT_REPOSITORY "git@github.com:alphacep/clapack.git")
 set(CLAPACK_GIT_TAG "${CLAPACK_VERSION}")
 set(CLAPACK_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external/clapack")
-set(CLAPACK_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/clapack_install")
+set(CLAPACK_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/kaldi_deps_clapack")
 
 # Check if CLAPACK is already compiled
 find_library(CLAPACK_EXISTING_LIB f2c PATHS ${CLAPACK_INSTALL_DIR}/lib NO_DEFAULT_PATH)
@@ -49,10 +49,15 @@ if(NOT CLAPACK_COMPILED)
                          ${CLAPACK_INSTALL_DIR}/lib/libblas.a 
                          ${CLAPACK_INSTALL_DIR}/include/f2c.h
                          ${CLAPACK_INSTALL_DIR}/include/clapack.h
-        LOG_DOWNLOAD ON
-        LOG_CONFIGURE ON
-        LOG_BUILD ON
-        LOG_INSTALL ON
+        # Print logs directly to console instead of log files
+        LOG_DOWNLOAD OFF
+        LOG_CONFIGURE OFF
+        LOG_BUILD OFF
+        LOG_INSTALL OFF
+        USES_TERMINAL_DOWNLOAD ON
+        USES_TERMINAL_CONFIGURE ON
+        USES_TERMINAL_BUILD ON
+        USES_TERMINAL_INSTALL ON
     )
     
     # Set variables for later use
@@ -71,7 +76,7 @@ else()
     # Use existing installation
     set(CLAPACK_ROOT ${CLAPACK_INSTALL_DIR})
     set(CLAPACK_LIBRARIES "${CLAPACK_EXISTING_LIB};${CLAPACK_INSTALL_DIR}/lib/libblas.a;${CLAPACK_INSTALL_DIR}/lib/liblapack.a")
-    set(CLAPACK_INCLUDE_DIRS ${CLAPACK_EXISTING_INCLUDE})
+    set(CLAPACK_INCLUDE_DIRS ${CLAPACK_INSTALL_DIR}/include)
     
     add_library(clapack STATIC IMPORTED GLOBAL)
     set_target_properties(clapack PROPERTIES
@@ -82,11 +87,18 @@ endif()
 
 # Export variables for use in main CMakeLists.txt
 set(CLAPACK_FOUND TRUE PARENT_SCOPE)
-set(CLAPACK_ROOT ${CLAPACK_ROOT} PARENT_SCOPE)
-set(CLAPACK_LIBRARIES ${CLAPACK_LIBRARIES} PARENT_SCOPE)
-set(CLAPACK_INCLUDE_DIRS ${CLAPACK_INCLUDE_DIRS} PARENT_SCOPE)
+set(KALDI_CLAPACK_ROOT ${CLAPACK_ROOT} PARENT_SCOPE)
+set(KALDI_CLAPACK_LIBRARIES ${CLAPACK_LIBRARIES} PARENT_SCOPE)
+set(KALDI_CLAPACK_INCLUDE_DIRS ${CLAPACK_INCLUDE_DIRS} PARENT_SCOPE)
 
 message(STATUS "CLAPACK configuration:")
 message(STATUS "  Root: ${CLAPACK_ROOT}")
 message(STATUS "  Libraries: ${CLAPACK_LIBRARIES}")
 message(STATUS "  Include dirs: ${CLAPACK_INCLUDE_DIRS}")
+
+# Compact status output
+if(CLAPACK_COMPILED)
+    message(STATUS "✓ CLAPACK: Using existing installation")
+else()
+    message(STATUS "⚙ CLAPACK: Will build from source")
+endif()

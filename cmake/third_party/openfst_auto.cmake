@@ -9,7 +9,7 @@ set(OPENFST_VERSION "orig/1.8.0.1")
 set(OPENFST_GIT_REPOSITORY "git@github.com:kkm000/openfst.git")
 set(OPENFST_GIT_TAG "${OPENFST_VERSION}")
 set(OPENFST_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external/openfst")
-set(OPENFST_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/openfst_install")
+set(OPENFST_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/kaldi_deps_openfst")
 
 # Configure OpenFST build parameters
 set(OPENFST_CONFIGURE_ARGS
@@ -53,10 +53,15 @@ if(NOT OPENFST_COMPILED)
         BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL}
         INSTALL_COMMAND make install
         BUILD_IN_SOURCE 0
-        LOG_DOWNLOAD ON
-        LOG_CONFIGURE ON
-        LOG_BUILD ON
-        LOG_INSTALL ON
+        # Print logs directly to console instead of log files
+        LOG_DOWNLOAD OFF
+        LOG_CONFIGURE OFF
+        LOG_BUILD OFF
+        LOG_INSTALL OFF
+        USES_TERMINAL_DOWNLOAD ON
+        USES_TERMINAL_CONFIGURE ON
+        USES_TERMINAL_BUILD ON
+        USES_TERMINAL_INSTALL ON
     )
     
     # Set variables for later use
@@ -97,3 +102,10 @@ message(STATUS "OpenFST configuration:")
 message(STATUS "  Root: ${OPENFST_ROOT}")
 message(STATUS "  Libraries: ${OPENFST_LIBRARIES}")
 message(STATUS "  Include dirs: ${OPENFST_INCLUDE_DIRS}")
+
+# Compact status output
+if(OPENFST_COMPILED)
+    message(STATUS "✓ OpenFST: Using existing installation")
+else()
+    message(STATUS "⚙ OpenFST: Will build from source")
+endif()
