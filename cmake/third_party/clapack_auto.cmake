@@ -32,7 +32,7 @@ if(NOT CLAPACK_COMPILED)
     ExternalProject_Add(clapack_external
         SOURCE_DIR ${CLAPACK_SOURCE_DIR}
         PREFIX ${CLAPACK_PREFIX}
-        CONFIGURE_COMMAND ${CMAKE_COMMAND} <SOURCE_DIR>
+        CONFIGURE_COMMAND ${CMAKE_COMMAND} <SOURCE_DIR> -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_C_FLAGS=-fPIC
         BUILD_COMMAND ${CMAKE_COMMAND} -E chdir <BINARY_DIR> make -C F2CLIBS/libf2c
               COMMAND ${CMAKE_COMMAND} -E chdir <BINARY_DIR> make -C BLAS  
               COMMAND ${CMAKE_COMMAND} -E chdir <BINARY_DIR> make -C SRC
@@ -46,15 +46,15 @@ if(NOT CLAPACK_COMPILED)
                          ${CLAPACK_INSTALL_DIR}/lib/libblas.a 
                          ${CLAPACK_INSTALL_DIR}/include/f2c.h
                          ${CLAPACK_INSTALL_DIR}/include/clapack.h
-        # Print logs directly to console instead of log files
-        LOG_DOWNLOAD OFF
-        LOG_CONFIGURE OFF
-        LOG_BUILD OFF
-        LOG_INSTALL OFF
-        USES_TERMINAL_DOWNLOAD ON
-        USES_TERMINAL_CONFIGURE ON
-        USES_TERMINAL_BUILD ON
-        USES_TERMINAL_INSTALL ON
+        # Reduce verbose output during build
+        LOG_DOWNLOAD ON
+        LOG_CONFIGURE ON
+        LOG_BUILD ON
+        LOG_INSTALL ON
+        USES_TERMINAL_DOWNLOAD OFF
+        USES_TERMINAL_CONFIGURE OFF
+        USES_TERMINAL_BUILD OFF
+        USES_TERMINAL_INSTALL OFF
     )
     
     # Set variables for later use

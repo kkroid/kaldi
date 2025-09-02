@@ -36,7 +36,8 @@ function(configure_math_library)
             endif()
         endif()
     endif()
-    
+
+    message(STATUS "KALDI_BUILD_DEPENDENCIES: ${KALDI_BUILD_DEPENDENCIES}, MATHLIB: ${MATHLIB}")
     # Fall back to building from source
     if(KALDI_BUILD_DEPENDENCIES AND MATHLIB STREQUAL "OpenBLAS")
         message(STATUS "Building OpenBLAS from source")

@@ -50,15 +50,15 @@ if(NOT OPENFST_COMPILED)
         BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL}
         INSTALL_COMMAND make install
         BUILD_IN_SOURCE 0
-        # Print logs directly to console instead of log files
-        LOG_DOWNLOAD OFF
-        LOG_CONFIGURE OFF
-        LOG_BUILD OFF
-        LOG_INSTALL OFF
-        USES_TERMINAL_DOWNLOAD ON
-        USES_TERMINAL_CONFIGURE ON
-        USES_TERMINAL_BUILD ON
-        USES_TERMINAL_INSTALL ON
+        # Reduce verbose output during build
+        LOG_DOWNLOAD ON
+        LOG_CONFIGURE ON
+        LOG_BUILD ON
+        LOG_INSTALL ON
+        USES_TERMINAL_DOWNLOAD OFF
+        USES_TERMINAL_CONFIGURE OFF
+        USES_TERMINAL_BUILD OFF
+        USES_TERMINAL_INSTALL OFF
     )
     
     # Set variables for later use

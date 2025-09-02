@@ -94,3 +94,4 @@ venv/
 /build_*/
 # But keep the build script
 !/build_kaldi.sh
+.install

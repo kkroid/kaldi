@@ -23,6 +23,15 @@ endif()
 
 include(third_party/get_third_party)
 
+# Set MATHLIB before including dependencies.cmake
+if(APPLE)
+    # Use built-in BLAS on MacOS by default.
+    set(MATHLIB "Accelerate" CACHE STRING "OpenBLAS|MKL|Accelerate")
+else()
+    set(MATHLIB "OpenBLAS" CACHE STRING "OpenBLAS|MKL|Accelerate")
+endif()
+message(STATUS "Using ${MATHLIB} for linear algebra")
+
 # Include automated dependency management
 include(cmake/dependencies.cmake)
 
@@ -48,8 +57,11 @@ unset(IS_LIB_SHARE)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INSTALL_MESSAGE LAZY) # hide "-- Up-to-date: ..."
+
+# Enable position independent code for all targets (needed for shared libraries and Android)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 if(BUILD_SHARED_LIBS)
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     if(WIN32)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
         message(FATAL_ERROR "DLL is not supported currently")
@@ -60,13 +72,6 @@ if(BUILD_SHARED_LIBS)
     endif()
 endif()
 
-if(APPLE)
-    # Use built-in BLAS on MacOS by default.
-    set(MATHLIB "Accelerate" CACHE STRING "OpenBLAS|MKL|Accelerate")
-else()
-    set(MATHLIB "OpenBLAS" CACHE STRING "OpenBLAS|MKL|Accelerate")
-endif()
-message(STATUS "Using ${MATHLIB} for linear algebra")
 option(KALDI_BUILD_EXE "If disabled, will make add_kaldi_executable a no-op" ON)
 option(KALDI_BUILD_TEST "If disabled, will make add_kaldi_test_executable a no-op" ON)
 option(KALDI_USE_PATCH_NUMBER "Use MAJOR.MINOR.PATCH format, otherwise MAJOR.MINOR" OFF)

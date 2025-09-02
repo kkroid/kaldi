@@ -15,6 +15,7 @@ set(OPENBLAS_CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${OPENBLAS_INSTALL_DIR}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     -DBUILD_SHARED_LIBS=ON
     -DBUILD_STATIC_LIBS=ON
     -DUSE_OPENMP=OFF
@@ -70,15 +71,15 @@ if(NOT OPENBLAS_COMPILED)
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke_config.h ${OPENBLAS_INSTALL_DIR}/include/
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke_mangling.h ${OPENBLAS_INSTALL_DIR}/include/
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/lapack-netlib/LAPACKE/include/lapacke_utils.h ${OPENBLAS_INSTALL_DIR}/include/
-        # Print logs directly to console instead of log files
-        LOG_DOWNLOAD OFF
-        LOG_CONFIGURE OFF  
-        LOG_BUILD OFF
-        LOG_INSTALL OFF
-        USES_TERMINAL_DOWNLOAD ON
-        USES_TERMINAL_CONFIGURE ON
-        USES_TERMINAL_BUILD ON
-        USES_TERMINAL_INSTALL ON
+        # Reduce verbose output during build
+        LOG_DOWNLOAD ON
+        LOG_CONFIGURE ON  
+        LOG_BUILD ON
+        LOG_INSTALL ON
+        USES_TERMINAL_DOWNLOAD OFF
+        USES_TERMINAL_CONFIGURE OFF
+        USES_TERMINAL_BUILD OFF
+        USES_TERMINAL_INSTALL OFF
     )
     
     # Set variables for later use
