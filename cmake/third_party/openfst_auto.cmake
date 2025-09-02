@@ -6,8 +6,7 @@ cmake_minimum_required(VERSION 3.14)
 include(ExternalProject)
 
 set(OPENFST_VERSION "orig/1.8.0.1")
-set(OPENFST_GIT_REPOSITORY "git@github.com:kkm000/openfst.git")
-set(OPENFST_GIT_TAG "${OPENFST_VERSION}")
+set(OPENFST_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/openfst")
 set(OPENFST_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external/openfst")
 set(OPENFST_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/kaldi_deps_openfst")
 
@@ -45,9 +44,7 @@ if(NOT OPENFST_COMPILED)
 
     # Download and compile OpenFST using Git
     ExternalProject_Add(openfst_external
-        GIT_REPOSITORY ${OPENFST_GIT_REPOSITORY}
-        GIT_TAG ${OPENFST_GIT_TAG}
-        GIT_SHALLOW ON
+        SOURCE_DIR ${OPENFST_SOURCE_DIR}
         PREFIX ${OPENFST_PREFIX}
         CONFIGURE_COMMAND <SOURCE_DIR>/configure ${OPENFST_CONFIGURE_ARGS}
         BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL}

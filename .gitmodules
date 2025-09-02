@@ -1,0 +1,9 @@
+[submodule "external/openblas"]
+	path = external/openblas
+	url = https://github.com/OpenMathLib/OpenBLAS.git
+[submodule "external/openfst"]
+	path = external/openfst
+	url = https://github.com/kkm000/openfst.git
+[submodule "external/clapack"]
+	path = external/clapack
+	url = https://github.com/alphacep/clapack.git

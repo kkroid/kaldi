@@ -6,8 +6,7 @@ cmake_minimum_required(VERSION 3.14)
 include(ExternalProject)
 
 set(CLAPACK_VERSION "v3.2.1")
-set(CLAPACK_GIT_REPOSITORY "git@github.com:alphacep/clapack.git")
-set(CLAPACK_GIT_TAG "${CLAPACK_VERSION}")
+set(CLAPACK_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/clapack")
 set(CLAPACK_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external/clapack")
 set(CLAPACK_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/kaldi_deps_clapack")
 
@@ -31,9 +30,7 @@ if(NOT CLAPACK_COMPILED)
 
     # Download and compile CLAPACK using cmake and make
     ExternalProject_Add(clapack_external
-        GIT_REPOSITORY ${CLAPACK_GIT_REPOSITORY}
-        GIT_TAG ${CLAPACK_GIT_TAG}
-        GIT_SHALLOW ON
+        SOURCE_DIR ${CLAPACK_SOURCE_DIR}
         PREFIX ${CLAPACK_PREFIX}
         CONFIGURE_COMMAND ${CMAKE_COMMAND} <SOURCE_DIR>
         BUILD_COMMAND ${CMAKE_COMMAND} -E chdir <BINARY_DIR> make -C F2CLIBS/libf2c

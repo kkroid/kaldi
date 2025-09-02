@@ -6,8 +6,7 @@ cmake_minimum_required(VERSION 3.14)
 include(ExternalProject)
 
 set(OPENBLAS_VERSION "v0.3.26")
-set(OPENBLAS_GIT_REPOSITORY "git@github.com:OpenMathLib/OpenBLAS.git")
-set(OPENBLAS_GIT_TAG "${OPENBLAS_VERSION}")
+set(OPENBLAS_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/openblas")
 set(OPENBLAS_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external/openblas")
 set(OPENBLAS_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/kaldi_deps_openblas")
 
@@ -57,9 +56,7 @@ if(NOT OPENBLAS_COMPILED)
 
     # Download and compile OpenBLAS using Git
     ExternalProject_Add(openblas_external
-        GIT_REPOSITORY ${OPENBLAS_GIT_REPOSITORY}
-        GIT_TAG ${OPENBLAS_GIT_TAG}
-        GIT_SHALLOW ON
+        SOURCE_DIR ${OPENBLAS_SOURCE_DIR}
         PREFIX ${OPENBLAS_PREFIX}
         PATCH_COMMAND ${CMAKE_COMMAND} -E echo "Patching OpenBLAS CMake files..." 
                   COMMAND sed -i "s/cmake_minimum_required(VERSION 2\\.8\\.5)/cmake_minimum_required(VERSION 3.5)/g" <SOURCE_DIR>/CMakeLists.txt
