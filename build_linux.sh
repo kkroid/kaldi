@@ -63,7 +63,8 @@ done
 #-----------------------------
 # 路径与目录布局
 #-----------------------------
-PROJECT_ROOT=$(pwd)
+# PROJECT_ROOT=$(pwd)
+PROJECT_ROOT=/home/kkroid/github/kaldi-vosk
 DEPS_BUILD_DIR=".build_deps"
 KALDI_INSTALL_DIR=".install_linux"
 DEPS_PREFIX="$PROJECT_ROOT/$DEPS_BUILD_DIR"
@@ -187,7 +188,7 @@ else
   autoreconf -i
 
   echo "配置 OpenFST..."
-  CFLAGS="-g -O3" ./configure \
+  CFLAGS="-O3 -ftree-vectorize" ./configure \
     --prefix="$DEPS_PREFIX" \
     --enable-static \
     --enable-shared \
@@ -258,7 +259,7 @@ else
   echo "配置 Kaldi..."
   # 先清理，避免混入其他平台的 .o
   make clean || true
-  CXXFLAGS="-O3" CC="$CC" CXX="$CXX" ./configure \
+  CXXFLAGS="-O3 -ftree-vectorize" CC="$CC" CXX="$CXX" ./configure \
     --mathlib=OPENBLAS_CLAPACK \
     --shared \
     --use-cuda=no \

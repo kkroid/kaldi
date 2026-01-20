@@ -92,7 +92,7 @@ venv/
 # Build directories
 /build/
 /build_*/
-/.build_deps/
+/.build_deps*/
 # But keep the build script
 !/build_kaldi.sh
 .install*/
