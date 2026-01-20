@@ -9,13 +9,9 @@ Kaldi Speech Recognition Toolkit
 
 ```bash
 # 基本构建
-./build_kaldi.sh
-
-# 构建并安装
-./build_kaldi.sh --install
-
-# 查看所有选项
-./build_kaldi.sh --help
+编译windows版本: ./build_windows_mingw.sh
+编译Linux版本: ./build_linux.sh
+编译Android版本: ./build_android.sh
 ```
 
 📖 **详细文档**: 参见 [BUILD_SYSTEM.md](BUILD_SYSTEM.md) 了解完整的构建系统说明。
